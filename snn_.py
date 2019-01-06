@@ -3,42 +3,46 @@
 
     2019-01-04 20:00: Barcelona
 '''
-# import the 
+# import the standard libraries
 import numpy as np
 import random
 from sklearn.utils import check_array
 
+# import the classes written
 import sys
 sys.path.append('./matrix_calculater')
 sys.path.append('./snn_graph')
 from matrix_calculater import MatrixCalculater
 from snn_graph import SNNGraph
 
-def snn(X, k=7, metric='minkowski', p=2, link_weight='unweighted', point_threshold=5, edge_threshold=3):
-'''
-    Performing SNN(Shared Nearest Neigbors) clustering algorithm
+def snn(X, k=7, metric='minkowski', p=2, link_weight='unweighted', point_threshold=12, edge_threshold=3):
+    '''
+        Performing SNN(Shared Nearest Neigbors) clustering algorithm
 
-    Parameters:
-    -----------
-    X -> The dataset waiting for clustering
-    k -> define the length of nearest neighbors list (default is 7)
-    metric -> define the way to calculate the distance between two samples in the dataset
-        (default is using the 'minkowski' method; there are also two ways to define the distance:
-            cosine similarity -> dot(x1, x2)/ (sqrt(x1)*sqrt(x2))
-        )
-    p -> the number of norm used in the 'minkowski' distance calculation(just useful with the option of 
-        metric = 'minkowski')
-    link_weight -> define the way to calculate the weight of links in the SNN graph
-    threshold -> define the miniuim standard for the weight of links existed
-        (if weight of link < threshold, then delete this link in the SNN graph)
+        Parameters:
+        -----------
+        X -> The dataset waiting for clustering
+        k -> define the length of nearest neighbors list (default is 7)
+        metric -> define the way to calculate the distance between two samples in the dataset
+            (default is using the 'minkowski' method; there are also two ways to define the distance:
+                cosine similarity -> dot(x1, x2)/ (sqrt(x1)*sqrt(x2))
+            )
+        p -> the number of norm used in the 'minkowski' distance calculation(just useful with the option of 
+            metric = 'minkowski')
+        link_weight -> define the way to calculate the weight of links in the SNN graph
+        threshold -> define the miniuim standard for the weight of links existed
+            (if weight of link < threshold, then delete this link in the SNN graph)
 
-    Features:
-    ---------
-    core_samples -> The representative points chosen for SNN
-    labels -> the labels for all samples in the dataset chosen
-'''
+        Features:
+        ---------
+        labels_index -> The array of index of points for each label
+        graph_final -> The final snn graph constructed
+        repr_points -> The representative points chosen for SNN
+        graph_original -> The original snn graph constructed
+        simi_array_k -> The index of k-nearest-neighbors list for each points in the dataset 
+    '''
     # juedge the k is greater than 0 or not
-    if not (k.is_integer() or k <= 0):
+    if not (isinstance(k, int) or k <= 0):
         raise ValueError("K must be an integer greater than 0")
     
     # distance_calculater the k-nearest-neighbors list for each point
@@ -58,7 +62,7 @@ def snn(X, k=7, metric='minkowski', p=2, link_weight='unweighted', point_thresho
     labels_index = _propagateCluster(snn_grapher.graph_filtered, snn_grapher.repr_points, range(len(X)))
 
     # return all informations ued
-    return ()
+    return (labels_index, snn_grapher.graph_filtered, snn_grapher.repr_points, snn_grapher.graph, distance_calculater.simi_array_k)
 
 def _propagateCluster(graph, repr_points, points):
     '''
@@ -76,6 +80,7 @@ def _propagateCluster(graph, repr_points, points):
         labels_index -> the index of point in each cluster label
     '''
     labels_index = []
+    print("Labels_index before clustering is ", labels_index)
     while repr_points.size > 0:
         # set the repr_points_used as []
         repr_points_used = np.array([])
@@ -87,12 +92,12 @@ def _propagateCluster(graph, repr_points, points):
 
         cluster = np.array([])
         while repr_point_queue.size > 0:
+            print(repr_point_queue)
             first = repr_point_queue[0]
-            np.delete(repr_point_queue, 0)
+            repr_point_queue = np.delete(repr_point_queue, 0)
 
-            np.append(repr_points_used, first)
-            np.append(cluster, first)
-
+            repr_points_used = np.append(repr_points_used, first)
+            cluster = np.append(cluster, first)
             dict_neighbor_first = graph[first]
             if not dict_neighbor_first:
                 # no neigbors, just as one cluster
@@ -100,16 +105,20 @@ def _propagateCluster(graph, repr_points, points):
             else:
                 for key,value in dict_neighbor_first.items():
                     if key in repr_points:
-                        np.append(repr_point_queue, key)
-                        np.append(repr_points_used, key)
+                        if not key in repr_point_queue and not key in repr_points_used:
+                            repr_point_queue = np.append(repr_point_queue, key)
+                            repr_points_used = np.append(repr_points_used, key)
+                        else:
+                            pass
                     else:
-                        np.append(cluster, key)
+                        cluster = np.append(cluster, key)
         # update the repr_points left
         repr_points = np.setdiff1d(repr_points, repr_points_used)
         # update the labels_index
         labels_index.append(cluster)
         # update the points left
         points = np.setdiff1d(points, cluster)
+
     # finally, add all points left in the points as the noise points, which has the label of 0
     labels_index.insert(0, points)
     return labels_index
@@ -117,7 +126,7 @@ def _propagateCluster(graph, repr_points, points):
 
 
 class SNN(object):
-    def __init__(self, k=7, metric='minkowski', p=2, link_weight='unweighted', point_threshold=5, edge_threshold=3):
+    def __init__(self, k=7, metric='minkowski', p=2, link_weight='unweighted', point_threshold=12, edge_threshold=3):
         self.k = k
         self.metric = metric
         self.p = p
@@ -125,6 +134,13 @@ class SNN(object):
         self.point_threshold = point_threshold
         self.edge_threshold = edge_threshold
 
-    def fit(self):
+    def fit(self, X):
         X = check_array(X, accept_sparse='csr')
-        
+        (self.labels_index, self.graph_final, self.repr_points, 
+            self.graph_original, self.simi_array_k) = snn(X, 
+            k=self.k, 
+            metric=self.metric, 
+            p=self.p, 
+            link_weight=self.link_weight, 
+            point_threshold=self.point_threshold, 
+            edge_threshold=self.edge_threshold)

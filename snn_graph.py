@@ -33,7 +33,7 @@ class SNNGraph(object):
         repr_points -> array of representative points which are filtered after point_threshold
         graph_filtered -> snn graph after deleting the links less than edge_threshold
     '''
-    def __init__(self, link_weight='unweighted', point_threshold=5, edge_threshold=3):
+    def __init__(self, link_weight='unweighted', point_threshold=12, edge_threshold=3):
         self.link_weihted = link_weight
         self.point_threshold = point_threshold
         self.edge_threshold = edge_threshold
@@ -76,13 +76,12 @@ class SNNGraph(object):
         else:
             # using the self.graph for getting the sum of weight for each point
             # iterate the {key:value} in the dict
-            points_weight = np.array([])
+            points_weight = np.array([], dtype=int)
             for item in self.graph:
                 p_w_temp = 0
                 for _,value in item.items():
                     p_w_temp = p_w_temp + value
-                np.append(points_weight, p_w_temp)
-            
+                points_weight = np.append(points_weight, p_w_temp)
             return points_weight
 
     def constructOrignialGraph(self, simi_array_k):
@@ -107,13 +106,14 @@ class SNNGraph(object):
             if not(k == len(simi_array_k[p_index])):
                 raise ValueError("The simi_array_k should have the same size!")
             else:
-                for n_index in range(k):
+                neighbors_p_index = simi_array_k[p_index]
+                for n in neighbors_p_index:
                     # points are neighbors of each other, so add the link
-                    if(n_index in simi_array_k[n_index]):
-                        l_weight = self.__calculateWeight(simi_array_k[p_index], simi_array_k[n_index])
+                    if(p_index in simi_array_k[n]):
+                        l_weight = self.__calculateWeight(simi_array_k[p_index], simi_array_k[n])
                         # add two key-value in dict of two points
-                        graph[p_index][n_index] = l_weight
-                        graph[n_index][p_index] = l_weight
+                        graph[p_index][n] = l_weight
+                        graph[n][p_index] = l_weight
         self.graph = graph
 
     def selectRepressentativePoints(self):
@@ -126,10 +126,10 @@ class SNNGraph(object):
             repr_points -> the array of index of representative points in the dataset
         '''
         points_weight = self.__calculatePointWeightSum()
-        repr_points = np.array([])
+        repr_points = np.array([], dtype=int)
         for p_index in range(len(points_weight)):
             if points_weight[p_index] >= self.point_threshold:
-                np.append(repr_points, points_weight[p_index])
+                repr_points = np.append(repr_points, p_index)
         self.repr_points = repr_points
 
     def filterLinks(self):
@@ -148,7 +148,7 @@ class SNNGraph(object):
             for item in graph:
                 for key,value in item.items():
                     # means that this edge should be deleted
-                    if value < self.point_threshold:
+                    if value < self.edge_threshold:
                         del item[key]
             self.graph_filtered = graph
 
@@ -169,11 +169,13 @@ class SNNGraph(object):
             raise TypeError("Should construct the graph before show SNN graph")
         else:
             # draw the SNN original graph
+            pass
 
     def showRepresentativePoints2d(self, points):
         '''
             Showing the representative points with the dataset(just in 2d)
         '''
-
+        pass
 
     def showFinalGraph2d(self, points):
+        pass
