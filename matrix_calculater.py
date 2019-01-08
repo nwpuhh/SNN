@@ -72,6 +72,7 @@ class MatrixCalculater(object):
             X -> the samples set
         '''
         # judge the method used for calculating the distance
+        print("Enter the matrix calcualting!")
         if self.metric == 'minkowski':
             # get the distance array of minkowski with chosen norm
             distances = pdist(X, self.metric, p=self.p)

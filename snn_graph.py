@@ -157,25 +157,7 @@ class SNNGraph(object):
             combining all functions in constructing the final SNN graph, which is
             the API for the class of snn_graph
         '''
+        print("Enter constructing of graph!")
         self.constructOrignialGraph(simi_array_k)
         self.selectRepressentativePoints()
         self.filterLinks()
-
-    def showOriginalGraph2d(self, points):
-        '''
-            draw the original SNN graph(just in 2d)
-        '''
-        if self.graph is None:
-            raise TypeError("Should construct the graph before show SNN graph")
-        else:
-            # draw the SNN original graph
-            pass
-
-    def showRepresentativePoints2d(self, points):
-        '''
-            Showing the representative points with the dataset(just in 2d)
-        '''
-        pass
-
-    def showFinalGraph2d(self, points):
-        pass
