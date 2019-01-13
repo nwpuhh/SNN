@@ -157,7 +157,7 @@ class SNNGraph(object):
             combining all functions in constructing the final SNN graph, which is
             the API for the class of snn_graph
         '''
-        print("Enter constructing of graph!")
+        # print("Enter constructing of graph!")
         self.constructOrignialGraph(simi_array_k)
         self.selectRepressentativePoints()
         self.filterLinks()

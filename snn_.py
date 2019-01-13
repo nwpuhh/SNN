@@ -16,7 +16,7 @@ sys.path.append('./snn_graph')
 from matrix_calculater import MatrixCalculater
 from snn_graph import SNNGraph
 
-def snn(X, k=7, metric='minkowski', p=2, link_weight='unweighted', point_threshold=12, edge_threshold=3):
+def snn(X, k=7, metric='minkowski', p=2, link_weight='unweighted', point_threshold=12, edge_threshold=3, simi_array_k=None):
     '''
         Performing SNN(Shared Nearest Neigbors) clustering algorithm
 
@@ -48,8 +48,11 @@ def snn(X, k=7, metric='minkowski', p=2, link_weight='unweighted', point_thresho
     
     # distance_calculater the k-nearest-neighbors list for each point
     distance_calculater = MatrixCalculater(k=k, metric=metric, p=p)
-    # distance_calculater has the simi_array_all and simi_array_k
-    distance_calculater.calculate(X)
+    if simi_array_k is None:
+        # distance_calculater has the simi_array_all and simi_array_k
+        distance_calculater.calculate(X)
+    else:
+        distance_calculater.simi_array_k = simi_array_k
 
     # snn_grapher is the object for construct the SNN graph
     snn_grapher = SNNGraph(link_weight=link_weight, point_threshold=point_threshold, edge_threshold=edge_threshold)
@@ -83,7 +86,7 @@ def _propagateCluster(graph, repr_points, points):
         -------
         labels_index -> the index of point in each cluster label
     '''
-    print("Enter the propagate!")
+    # print("Enter the propagate!")
     labels_index = []
     while repr_points.size > 0:
         # set the repr_points_used as []
@@ -144,10 +147,10 @@ def _getLabels(labels_index, data_len):
             noise_point = -1
             others from 0 to len(labels_index)-1
     '''
-    labels_ = []
+    labels_ = np.array([])
     # initializing the labels_ into all items to be -2, which means the impossible label
     for i in range(data_len):
-        labels_.append(-2)
+        labels_ = np.append(labels_, -2)
 
     for l_index in range(len(labels_index)):
         for p_index in labels_index[l_index]:
@@ -184,16 +187,32 @@ class SNN(object):
     #     # draw the points before adding the edges
 
 
-    def fit(self, X):
+    def fit(self, X, simi_array_k=None):
+        '''
+            !!! Attention: the simi_array_k can just be used when the dataset X, k, method of distance are all same
+                as the last time
+        '''
         X = check_array(X, accept_sparse='csr')
-        (self.labels_, self.graph_final, self.repr_points, 
-            self.graph_original, self.simi_array_k) = snn(X, 
-            k=self.k, 
-            metric=self.metric, 
-            p=self.p, 
-            link_weight=self.link_weight, 
-            point_threshold=self.point_threshold, 
-            edge_threshold=self.edge_threshold)
+        # add the choice of simi_array_k is to avoid the calculation duplicated of simi_array_k 
+        # when fitting the model when the k is the same, and the method of calculation!!
+        if simi_array_k is None:
+            (self.labels_, self.graph_final, self.repr_points, 
+                self.graph_original, self.simi_array_k) = snn(X, 
+                k=self.k, 
+                metric=self.metric, 
+                p=self.p, 
+                link_weight=self.link_weight, 
+                point_threshold=self.point_threshold, 
+                edge_threshold=self.edge_threshold)
+        else:
+            (self.labels_, self.graph_final, self.repr_points, 
+                self.graph_original, self.simi_array_k) = snn(X, 
+                k=self.k, 
+                metric=self.metric, 
+                p=self.p, 
+                link_weight=self.link_weight, 
+                point_threshold=self.point_threshold, 
+                edge_threshold=self.edge_threshold, simi_array_k=simi_array_k)
         
     def showRepresentativePoints2d(self, X):
         '''
@@ -210,8 +229,8 @@ class SNN(object):
                 repr_x.append(X[index][0])
                 repr_y.append(X[index][1])
             
-            plt.scatter(repr_x, repr_y, c='blue')
-            plt.title('Graph of showing the represenative points')
+            plt.scatter(repr_x, repr_y, c='blue', s=3)
+            plt.title('Length of core points are '+str(len(repr_x))+'')
             plt.xlabel('axis x')
             plt.ylabel('axis y')
             plt.show()
